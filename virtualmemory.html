@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Virtual Memory Visualizer - Vertical View</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fffdd0;;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    #container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+    }
+
+    #memory-wrapper {
+  width: 120px; /* Start narrow */
+  transition: width 0.5s ease; /* Enables smooth width change */
+  height: auto;
+  overflow-y: auto;
+  border: 2px solid #888;
+  padding: 10px;
+  background: #fff;
+  position: relative;
+  transition: width 0.5s ease; /* Smooth expand effect */
+}
+
+    #memory {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+
+    .block {
+      width: 120px;
+      height: 60px;
+      background-color: #e0f7fa;
+      border: 1px solid #555;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      border-radius: 6px;
+      position: relative;
+      transition: background-color 0.4s ease, transform 0.3s ease;
+    }
+
+    #floating {
+      position: absolute;
+      width: 120px;
+      height: 60px;
+      background-color: dodgerblue;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border-radius: 6px;
+      pointer-events: none;
+      left: 140px; 
+      z-index: 10;
+      display: none;
+      animation: pulse 0.8s infinite alternate;
+    }
+
+    #floating::after {
+      content: "";
+      position: absolute;
+      left: -10px; 
+      top: 50%;
+      transform: translateY(-50%);
+      border-width: 10px 10px 10px 0;
+      border-style: solid;
+      border-color: transparent dodgerblue transparent transparent;
+    }
+
+    @keyframes pulse {
+      from {
+        transform: scale(1);
+        box-shadow: 0 0 10px rgba(30, 144, 255, 0.3);
+      }
+      to {
+        transform: scale(1.05);
+        box-shadow: 0 0 18px rgba(30, 144, 255, 0.6);
+      }
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    label, input, button {
+      font-size: 16px;
+    }
+
+    input {
+      width: 100px;
+      padding: 6px;
+    }
+
+    button {
+      padding: 8px 12px;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 5px;
+      background-color: #d0f0c0;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Virtual Memory Management</h2>
+<div style="text-align: center; margin-bottom: 20px;">
+  <a href="index.html" style="font-size: 16px; color: #333; text-decoration: underline;">← Back to Main Menu</a>
+</div>
+<div id="container">
+  <div id="VMM"><h1>Virtual Memory</h1></div>
+  <div id="memory-wrapper">
+    <div id="memory"></div>
+    <div id="floating"></div>
+  </div>
+
+  <div id="controls">
+    <label for="size">Process Size:</label>
+    <input type="number" id="size" min="1">
+    <button onclick="allocate()">Allocate</button>
+    <button onclick="resetMemory()">Reset</button>
+    <div id="status"></div> 
+  </div>
+</div>
+
+<script>
+  const memoryBlocks = [];
+  const totalBlocks = 10;
+
+  for (let i = 0; i < totalBlocks; i++) {
+    memoryBlocks.push({
+      size: Math.floor(Math.random() * 50 + 20),
+      used: false
+    });
+  }
+
+  const memoryContainer = document.getElementById("memory");
+  const floating = document.getElementById("floating");
+  const status = document.getElementById("status");
+
+  function renderMemory() {
+    memoryContainer.innerHTML = "";
+    memoryBlocks.forEach((block, index) => {
+      const div = document.createElement("div");
+      div.className = "block";
+      div.setAttribute("data-index", index);
+      div.innerHTML = `Free<br>${block.size} KB`;
+      memoryContainer.appendChild(div);
+    });
+  }
+
+  renderMemory();
+
+  async function animateFloatingTo(top) {
+    return new Promise(resolve => {
+      floating.style.transition = 'top 0.6s ease';
+      floating.style.top = `${top}px`;
+      setTimeout(resolve, 700);
+    });
+  }
+
+  async function highlightBlock(blockDiv) {
+    blockDiv.style.transform = "scale(1.05)";
+    blockDiv.style.boxShadow = "0 0 10px rgba(0,0,0,0.3)";
+    await new Promise(r => setTimeout(r, 400));
+    blockDiv.style.transform = "scale(1)";
+    blockDiv.style.boxShadow = "none";
+  }
+
+function addLogEntry(message, isError = false) {
+  const logEntry = document.createElement("div");
+  logEntry.className = "log-entry";
+  logEntry.textContent = message;
+
+  if (isError) {
+    logEntry.style.backgroundColor = "red";  
+    logEntry.style.color = "white";  
+  }
+  status.appendChild(logEntry);
+  status.scrollTop = status.scrollHeight; 
+}
+
+  async function allocate() {
+    document.getElementById("memory-wrapper").style.width = "315px";
+
+    const input = document.getElementById("size");
+    const size = parseInt(input.value);
+    if (isNaN(size) || size <= 0) return alert("Enter a valid size.");
+
+    floating.style.display = "flex";
+    floating.textContent = `${size}`;
+    addLogEntry(`🔍 Searching for suitable block for ${size} KB...`);
+
+    const blockDivs = Array.from(memoryContainer.children);
+    let bestFitIndex = -1;
+    let bestFitSize = Infinity;
+
+    for (let i = 0; i < memoryBlocks.length; i++) {
+      const block = memoryBlocks[i];
+      const blockDiv = blockDivs[i];
+
+      if (block.used) continue;
+
+      const topPos = blockDiv.offsetTop;
+      await animateFloatingTo(topPos);
+      memoryContainer.scrollTo({ top: topPos - 60, behavior: "smooth" });
+      await highlightBlock(blockDiv);
+
+      //for stopping na kapag equal na sa size
+      if (block.size === size) {
+        bestFitIndex = i;
+        bestFitSize = block.size;
+        break; 
+      }
+
+      if (block.size > size && block.size < bestFitSize) {
+        bestFitSize = block.size;
+        bestFitIndex = i;
+      }
+    }
+
+    if (bestFitIndex !== -1) {
+      memoryBlocks[bestFitIndex].used = true;
+      const targetBlock = memoryContainer.children[bestFitIndex];
+      floating.style.top = `${targetBlock.offsetTop}px`;
+      floating.style.backgroundColor = "limegreen";
+      targetBlock.style.backgroundColor = "limegreen";
+      targetBlock.innerHTML = `Used<br>${size}`;
+      addLogEntry(`Allocated ${size} KB to block ${bestFitIndex + 1} with partition of ${memoryBlocks[bestFitIndex].size} KB.`);
+    } else {
+      floating.style.backgroundColor="red";
+      addLogEntry(`No suitable block found for ${size} KB.`,true);
+    }
+
+    setTimeout(() => {
+      floating.style.display = "none";
+      floating.style.backgroundColor = "dodgerblue";
+    }, 1500);
+  }
+
+  function resetMemory() {
+    for (let i = 0; i < memoryBlocks.length; i++) {
+      memoryBlocks[i].used = false;
+      memoryBlocks[i].size = Math.floor(Math.random() * 50 + 20);
+    }
+    renderMemory();
+    floating.style.display = "none";
+    floating.style.backgroundColor = "dodgerblue";
+    status.innerHTML = "";
+  }
+</script>
+
+</body>
+</html>

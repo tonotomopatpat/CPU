@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Process Scheduler</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fffdd0;
+      
+      padding: 20px;
+      color: #333;
+    }
+
+    h2, h3 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .mode-buttons, .algorithm-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #fff;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #e0e0e0;
+    }
+
+    button.active {
+      background: #4CAF50;
+      color: white;
+      border-color: #4CAF50;
+    }
+
+    .form-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    input[type="number"] {
+      width: 80px;
+      padding: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ccc;
+    }
+
+    .delete-btn {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    .delete-btn:hover {
+      background: darkred;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div style="text-align: center; margin-bottom: 20px;">
+  <a href="index.html" style="font-size: 16px; color: #333; text-decoration: underline;">← Back to Main Menu</a>
+</div>
+<h2>🧠 Process Scheduling Simulator</h2>
+
+<!-- Mode Selection -->
+<div class="mode-buttons">
+  <button id="btn-preemptive" onclick="setMode('preemptive')">Preemptive</button>
+  <button id="btn-nonpreemptive" onclick="setMode('nonpreemptive')">Non-Preemptive</button>
+</div>
+
+<!-- Algorithm Selection -->
+<div class="algorithm-buttons hidden" id="algorithms"></div>
+
+<!-- Time Quantum Input -->
+<div class="form-group hidden" id="quantumInput">
+  <input type="number" id="timeQuantum" placeholder="Time Quantum">
+</div>
+
+<!-- Process Input -->
+<div class="form-group hidden" id="processInput">
+  <input type="number" id="arrivalTime" placeholder="Arrival Time">
+  <input type="number" id="burstTime" placeholder="Burst Time">
+  <button onclick="addProcess()">Add Process</button>
+</div>
+
+<!-- Process Table -->
+<table id="processTable" class="hidden">
+  <thead>
+    <tr>
+      <th>Process ID</th>
+      <th>Arrival Time</th>
+      <th>Burst Time</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- Compute Button -->
+<button class="hidden" id="computeBtn" onclick="computeSchedule()">Compute Schedule</button>
+
+<!-- Results Table -->
+<h3 class="hidden" id="resultHeader">📝 Results</h3>
+<table id="resultTable" class="hidden">
+  <thead>
+    <tr>
+      <th>Process ID</th>
+      <th>Arrival Time</th>
+      <th>Burst Time</th>
+      <th>Completion Time</th>
+      <th>Turnaround Time</th>
+      <th>Waiting Time</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- Gantt Chart -->
+<h3 class="hidden" id="ganttHeader">📊 Gantt Chart</h3>
+<div id="ganttChart" class="hidden" style="display: flex; gap: 2px; padding-top: 10px;"></div>
+
+
+<script>
+  let processes = [];
+  let currentMode = '';
+  let selectedAlgorithm = '';
+  let timeQuantum = null;
+
+  function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btn-preemptive').classList.toggle('active', mode === 'preemptive');
+  document.getElementById('btn-nonpreemptive').classList.toggle('active', mode === 'nonpreemptive');
+
+  const algoDiv = document.getElementById('algorithms');
+  const quantumDiv = document.getElementById('quantumInput');
+  const processInput = document.getElementById('processInput');
+  const processTable = document.getElementById('processTable');
+  const computeBtn = document.getElementById('computeBtn');
+  const resultHeader = document.getElementById('resultHeader');
+  const resultTable = document.getElementById('resultTable');
+  const ganttHeader = document.getElementById('ganttHeader');
+  const ganttChart = document.getElementById('ganttChart');
+
+  // Reset views
+  algoDiv.classList.remove('hidden');
+  quantumDiv.classList.add('hidden');
+  processInput.classList.add('hidden');
+  processTable.classList.add('hidden');
+  computeBtn.classList.add('hidden');
+  resultHeader.classList.add('hidden');
+  resultTable.classList.add('hidden');
+  ganttHeader.classList.add('hidden');
+  ganttChart.classList.add('hidden'); // Explicitly hide the Gantt chart
+
+  selectedAlgorithm = '';
+  algoDiv.innerHTML = '';
+
+  const algos = mode === 'preemptive'
+    ? ['SJF (Preemptive)', 'Round Robin']
+    : ['FCFS', 'SJF (Non-Preemptive)'];
+
+  algos.forEach(algo => {
+    const btn = document.createElement('button');
+    btn.textContent = algo;
+    btn.onclick = () => {
+      selectedAlgorithm = algo;
+      document.querySelectorAll('.algorithm-buttons button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Show Quantum input if needed
+      quantumDiv.classList.toggle('hidden', algo !== 'Round Robin');
+
+      // Show input form and table
+      processInput.classList.remove('hidden');
+      processTable.classList.remove('hidden');
+      computeBtn.classList.remove('hidden');
+    };
+    algoDiv.appendChild(btn);
+  });
+}
+
+
+  function addProcess() {
+    const arrivalTime = document.getElementById('arrivalTime').value;
+    const burstTime = document.getElementById('burstTime').value;
+    if (arrivalTime === '' || burstTime === '') return alert('Please fill both fields.');
+
+    const id = processes.length ? Math.max(...processes.map(p => p.id)) + 1 : 1;
+    processes.push({ id, arrivalTime: +arrivalTime, burstTime: +burstTime });
+    renderTable();
+    document.getElementById('arrivalTime').value = '';
+    document.getElementById('burstTime').value = '';
+  }
+
+  function deleteProcess(id) {
+    processes = processes.filter(p => p.id !== id);
+    renderTable();
+  }
+
+  function renderTable() {
+    const tbody = document.querySelector('#processTable tbody');
+    tbody.innerHTML = '';
+    processes.forEach(p => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>P${p.id}</td>
+        <td>${p.arrivalTime}</td>
+        <td>${p.burstTime}</td>
+        <td><button class="delete-btn" onclick="deleteProcess(${p.id})">Delete</button></td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function computeSchedule() {
+    if (!selectedAlgorithm) return alert('Please select an algorithm.');
+    if (selectedAlgorithm === 'Round Robin') {
+      timeQuantum = document.getElementById('timeQuantum').value;
+      if (!timeQuantum) return alert('Please enter Time Quantum for Round Robin.');
+      timeQuantum = parseInt(timeQuantum, 10);
+    }
+
+    let completedProcesses = [];
+
+    if (selectedAlgorithm === 'FCFS') {
+      let currentTime = 0;
+      const sorted = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime);
+      sorted.forEach(p => {
+        const startTime = Math.max(currentTime, p.arrivalTime);
+        const completionTime = startTime + p.burstTime;
+        const turnaroundTime = completionTime - p.arrivalTime;
+        const waitingTime = turnaroundTime - p.burstTime;
+
+        completedProcesses.push({
+          id: p.id,
+          arrivalTime: p.arrivalTime,
+          burstTime: p.burstTime,
+          completionTime,
+          turnaroundTime,
+          waitingTime
+        });
+
+        currentTime = completionTime;
+      });
+
+      renderResultTable(completedProcesses);
+
+        const ganttLog = [];
+        let lastTime = 0;
+        completedProcesses.forEach(p => {
+          const startTime = Math.max(p.arrivalTime, lastTime);
+          ganttLog.push({ id: p.id, timeSlice: p.burstTime, currentTime: startTime + p.burstTime });
+          lastTime = startTime + p.burstTime;
+        });
+        renderGanttChart(ganttLog);
+    } else if (selectedAlgorithm === 'SJF (Non-Preemptive)') {
+      let currentTime = 0;
+      let remaining = [...processes];
+      while (remaining.length) {
+        const ready = remaining.filter(p => p.arrivalTime <= currentTime);
+        if (ready.length === 0) {
+          currentTime++;
+          continue;
+        }
+        ready.sort((a, b) => a.burstTime - b.burstTime);
+        const current = ready[0];
+        const startTime = Math.max(currentTime, current.arrivalTime);
+        const completionTime = startTime + current.burstTime;
+        const turnaroundTime = completionTime - current.arrivalTime;
+        const waitingTime = turnaroundTime - current.burstTime;
+
+        completedProcesses.push({
+          id: current.id,
+          arrivalTime: current.arrivalTime,
+          burstTime: current.burstTime,
+          completionTime,
+          turnaroundTime,
+          waitingTime
+        });
+
+        currentTime = completionTime;
+        remaining = remaining.filter(p => p.id !== current.id);
+      }
+
+      renderResultTable(completedProcesses);
+
+        const ganttLog = [];
+        let lastTime = 0;
+        completedProcesses.forEach(p => {
+          const startTime = Math.max(p.arrivalTime, lastTime);
+          ganttLog.push({ id: p.id, timeSlice: p.burstTime, currentTime: startTime + p.burstTime });
+          lastTime = startTime + p.burstTime;
+        });
+        renderGanttChart(ganttLog);
+    } else if (selectedAlgorithm === 'SJF (Preemptive)') {
+      let currentTime = 0;
+      let remaining = [...processes].map(p => ({
+        ...p,
+        remainingBurstTime: p.burstTime,
+        isComplete: false
+      }));
+      let completedCount = 0;
+      let processOrder = [];
+
+      while (completedCount < processes.length) {
+        let available = remaining.filter(p => p.arrivalTime <= currentTime && !p.isComplete);
+        if (available.length === 0) {
+          currentTime++;
+          continue;
+        }
+
+        available.sort((a, b) => a.remainingBurstTime - b.remainingBurstTime);
+        let current = available[0];
+
+        current.remainingBurstTime--;
+        processOrder.push({ id: current.id, time: currentTime });
+
+        if (current.remainingBurstTime === 0) {
+          current.isComplete = true;
+          completedCount++;
+          const completionTime = currentTime + 1;
+          const turnaroundTime = completionTime - current.arrivalTime;
+          const waitingTime = turnaroundTime - current.burstTime;
+          completedProcesses.push({
+            id: current.id,
+            arrivalTime: current.arrivalTime,
+            burstTime: current.burstTime,
+            completionTime,
+            turnaroundTime,
+            waitingTime
+          });
+        }
+
+        currentTime++;
+      }
+
+      // Convert execution log to Gantt chart blocks
+      const ganttLog = [];
+      for (let i = 0; i < processOrder.length;) {
+        const pid = processOrder[i].id;
+        const start = processOrder[i].time;
+        let end = start;
+        while (i < processOrder.length && processOrder[i].id === pid) {
+          end = processOrder[i].time + 1;
+          i++;
+        }
+        ganttLog.push({ id: pid, timeSlice: end - start, currentTime: end });
+      }
+
+      renderResultTable(completedProcesses);
+      renderGanttChart(ganttLog);
+    } else if (selectedAlgorithm === 'Round Robin') {
+      let currentTime = 0;
+      let remainingProcesses = [...processes].map(p => ({ ...p, remainingBurstTime: p.burstTime, startTime: null }));
+      let processOrder = [];
+
+      let readyQueue = [];
+      let visited = [];
+
+      while (remainingProcesses.some(p => p.remainingBurstTime > 0)) {
+        remainingProcesses.forEach(p => {
+          if (!visited.includes(p.id) && p.arrivalTime <= currentTime) {
+            readyQueue.push(p);
+            visited.push(p.id);
+          }
+        });
+
+        if (readyQueue.length === 0) {
+          currentTime++;
+          continue;
+        }
+
+        let process = readyQueue.shift();
+        let timeSlice = Math.min(timeQuantum, process.remainingBurstTime);
+        if (process.startTime === null) process.startTime = currentTime;
+
+        process.remainingBurstTime -= timeSlice;
+        currentTime += timeSlice;
+        processOrder.push({ ...process, timeSlice, currentTime });
+
+        remainingProcesses.forEach(p => {
+          if (!visited.includes(p.id) && p.arrivalTime <= currentTime) {
+            readyQueue.push(p);
+            visited.push(p.id);
+          }
+        });
+
+        if (process.remainingBurstTime > 0) {
+          readyQueue.push(process);
+        } else {
+          const completionTime = currentTime;
+          const turnaroundTime = completionTime - process.arrivalTime;
+          const waitingTime = turnaroundTime - process.burstTime;
+
+          completedProcesses.push({
+            id: process.id,
+            arrivalTime: process.arrivalTime,
+            burstTime: process.burstTime,
+            completionTime,
+            turnaroundTime,
+            waitingTime
+          });
+        }
+      }
+
+      renderResultTable(completedProcesses);
+      renderGanttChart(processOrder);
+    } else {
+      alert('Selected algorithm is not implemented.');
+    }
+
+    // Show result table and chart
+    document.getElementById('resultHeader').classList.remove('hidden');
+    document.getElementById('resultTable').classList.remove('hidden');
+    document.getElementById('ganttHeader').classList.remove('hidden');
+    document.getElementById('ganttChart').classList.remove('hidden'); 
+  }
+
+  function renderResultTable(results) {
+    const tbody = document.querySelector('#resultTable tbody');
+    tbody.innerHTML = '';
+    let totalTurnaroundTime = 0;
+    let totalWaitingTime = 0;
+
+    results.forEach(p => {
+      totalTurnaroundTime += p.turnaroundTime;
+      totalWaitingTime += p.waitingTime;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>P${p.id}</td>
+        <td>${p.arrivalTime}</td>
+        <td>${p.burstTime}</td>
+        <td>${p.completionTime}</td>
+        <td>${p.turnaroundTime}</td>
+        <td>${p.waitingTime}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    const avgTurnaroundTime = totalTurnaroundTime / results.length;
+    const avgWaitingTime = totalWaitingTime / results.length;
+
+    const avgRow = document.createElement('tr');
+    avgRow.innerHTML = `
+      <td colspan="4"><strong>Average Turnaround Time:</strong></td>
+      <td colspan="2">${avgTurnaroundTime.toFixed(2)}</td>
+    `;
+    tbody.appendChild(avgRow);
+
+    const avgWaitingRow = document.createElement('tr');
+    avgWaitingRow.innerHTML = `
+      <td colspan="4"><strong>Average Waiting Time:</strong></td>
+      <td colspan="2">${avgWaitingTime.toFixed(2)}</td>
+    `;
+    tbody.appendChild(avgWaitingRow);
+  }
+
+  function renderGanttChart(processOrder) {
+    const ganttChart = document.getElementById('ganttChart');
+    ganttChart.innerHTML = '';
+
+    ganttChart.classList.remove('hidden');
+
+    let startTime = 0;
+
+    processOrder.forEach(entry => {
+      const bar = document.createElement('div');
+      const width = entry.timeSlice * 20;
+
+      bar.style.width = `${width}px`;
+      bar.style.background = '#4CAF50';
+      bar.style.border = '1px solid #333';
+      bar.style.color = '#fff';
+      bar.style.padding = '4px';
+      bar.style.textAlign = 'center';
+      bar.style.fontSize = '12px';
+      bar.textContent = `P${entry.id} (${startTime}-${entry.currentTime})`;
+
+      ganttChart.appendChild(bar);
+      startTime = entry.currentTime;
+    });
+
+    document.getElementById('ganttHeader').classList.remove('hidden');
+    ganttChart.classList.remove('hidden');
+  }
+</script>
+
+
+</body>
+</html>
