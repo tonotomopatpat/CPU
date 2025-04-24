@@ -223,7 +223,7 @@ function addLogEntry(message, isError = false) {
 
     floating.style.display = "flex";
     floating.textContent = `${size}`;
-    addLogEntry(`🔍 Searching for suitable block for ${size} KB...`);
+    addLogEntry(`Searching for suitable block for ${size} KB...`);
 
     const blockDivs = Array.from(memoryContainer.children);
     let bestFitIndex = -1;

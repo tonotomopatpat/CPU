@@ -4,117 +4,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
   <title>Process Scheduler</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #fffdd0;
-      
-      padding: 20px;
-      color: #333;
-    }
-
-    h2, h3 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .mode-buttons, .algorithm-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    button {
-      padding: 8px 16px;
-      font-size: 14px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      background: #fff;
-      transition: background 0.2s;
-    }
-
-    button:hover {
-      background: #e0e0e0;
-    }
-
-    button.active {
-      background: #4CAF50;
-      color: white;
-      border-color: #4CAF50;
-    }
-
-    .form-group {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-
-    input[type="number"] {
-      width: 80px;
-      padding: 5px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-
-    th, td {
-      padding: 10px;
-      text-align: center;
-      border: 1px solid #ccc;
-    }
-
-    .delete-btn {
-      background: red;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      cursor: pointer;
-    }
-
-    .delete-btn:hover {
-      background: darkred;
-    }
-
-    .hidden {
-      display: none;
-    }
-  </style>
+  <link rel="stylesheet" href="cpustyles.css">
 </head>
 <body>
 <div style="text-align: center; margin-bottom: 20px;">
   <a href="index.html" style="font-size: 16px; color: #333; text-decoration: underline;">← Back to Main Menu</a>
 </div>
-<h2>🧠 Process Scheduling Simulator</h2>
+<h2>Process Scheduling Simulator</h2>
 
-<!-- Mode Selection -->
 <div class="mode-buttons">
   <button id="btn-preemptive" onclick="setMode('preemptive')">Preemptive</button>
   <button id="btn-nonpreemptive" onclick="setMode('nonpreemptive')">Non-Preemptive</button>
 </div>
 
-<!-- Algorithm Selection -->
+
 <div class="algorithm-buttons hidden" id="algorithms"></div>
 
-<!-- Time Quantum Input -->
 <div class="form-group hidden" id="quantumInput">
   <input type="number" id="timeQuantum" placeholder="Time Quantum">
 </div>
 
-<!-- Process Input -->
 <div class="form-group hidden" id="processInput">
   <input type="number" id="arrivalTime" placeholder="Arrival Time">
   <input type="number" id="burstTime" placeholder="Burst Time">
   <button onclick="addProcess()">Add Process</button>
 </div>
 
-<!-- Process Table -->
 <table id="processTable" class="hidden">
   <thead>
     <tr>
@@ -127,10 +42,8 @@
   <tbody></tbody>
 </table>
 
-<!-- Compute Button -->
 <button class="hidden" id="computeBtn" onclick="computeSchedule()">Compute Schedule</button>
 
-<!-- Results Table -->
 <h3 class="hidden" id="resultHeader">📝 Results</h3>
 <table id="resultTable" class="hidden">
   <thead>
@@ -146,7 +59,7 @@
   <tbody></tbody>
 </table>
 
-<!-- Gantt Chart -->
+<!--gantt chart hell-->
 <h3 class="hidden" id="ganttHeader">📊 Gantt Chart</h3>
 <div id="ganttChart" class="hidden" style="display: flex; gap: 2px; padding-top: 10px;"></div>
 
@@ -158,58 +71,53 @@
   let timeQuantum = null;
 
   function setMode(mode) {
-  currentMode = mode;
-  document.getElementById('btn-preemptive').classList.toggle('active', mode === 'preemptive');
-  document.getElementById('btn-nonpreemptive').classList.toggle('active', mode === 'nonpreemptive');
+    currentMode = mode;
+    document.getElementById('btn-preemptive').classList.toggle('active', mode === 'preemptive');
+    document.getElementById('btn-nonpreemptive').classList.toggle('active', mode === 'nonpreemptive');
 
-  const algoDiv = document.getElementById('algorithms');
-  const quantumDiv = document.getElementById('quantumInput');
-  const processInput = document.getElementById('processInput');
-  const processTable = document.getElementById('processTable');
-  const computeBtn = document.getElementById('computeBtn');
-  const resultHeader = document.getElementById('resultHeader');
-  const resultTable = document.getElementById('resultTable');
-  const ganttHeader = document.getElementById('ganttHeader');
-  const ganttChart = document.getElementById('ganttChart');
+    const algoDiv = document.getElementById('algorithms');
+    const quantumDiv = document.getElementById('quantumInput');
+    const processInput = document.getElementById('processInput');
+    const processTable = document.getElementById('processTable');
+    const computeBtn = document.getElementById('computeBtn');
+    const resultHeader = document.getElementById('resultHeader');
+    const resultTable = document.getElementById('resultTable');
+    const ganttHeader = document.getElementById('ganttHeader');
+    const ganttChart = document.getElementById('ganttChart');
 
-  // Reset views
-  algoDiv.classList.remove('hidden');
-  quantumDiv.classList.add('hidden');
-  processInput.classList.add('hidden');
-  processTable.classList.add('hidden');
-  computeBtn.classList.add('hidden');
-  resultHeader.classList.add('hidden');
-  resultTable.classList.add('hidden');
-  ganttHeader.classList.add('hidden');
-  ganttChart.classList.add('hidden'); // Explicitly hide the Gantt chart
+    algoDiv.classList.remove('hidden');
+    quantumDiv.classList.add('hidden');
+    processInput.classList.add('hidden');
+    processTable.classList.add('hidden');
+    computeBtn.classList.add('hidden');
+    resultHeader.classList.add('hidden');
+    resultTable.classList.add('hidden');
+    ganttHeader.classList.add('hidden');
+    ganttChart.classList.add('hidden');
 
-  selectedAlgorithm = '';
-  algoDiv.innerHTML = '';
+    selectedAlgorithm = '';
+    algoDiv.innerHTML = '';
 
-  const algos = mode === 'preemptive'
-    ? ['SJF (Preemptive)', 'Round Robin']
-    : ['FCFS', 'SJF (Non-Preemptive)'];
+    const algos = mode === 'preemptive'
+      ? ['SJF (Preemptive)', 'Round Robin']
+      : ['FCFS', 'SJF (Non-Preemptive)'];
 
-  algos.forEach(algo => {
-    const btn = document.createElement('button');
-    btn.textContent = algo;
-    btn.onclick = () => {
-      selectedAlgorithm = algo;
-      document.querySelectorAll('.algorithm-buttons button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+    algos.forEach(algo => {
+      const btn = document.createElement('button');
+      btn.textContent = algo;
+      btn.onclick = () => {
+        selectedAlgorithm = algo;
+        document.querySelectorAll('.algorithm-buttons button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-      // Show Quantum input if needed
-      quantumDiv.classList.toggle('hidden', algo !== 'Round Robin');
-
-      // Show input form and table
-      processInput.classList.remove('hidden');
-      processTable.classList.remove('hidden');
-      computeBtn.classList.remove('hidden');
-    };
-    algoDiv.appendChild(btn);
-  });
-}
-
+        quantumDiv.classList.toggle('hidden', algo !== 'Round Robin');
+        processInput.classList.remove('hidden');
+        processTable.classList.remove('hidden');
+        computeBtn.classList.remove('hidden');
+      };
+      algoDiv.appendChild(btn);
+    });
+  }
 
   function addProcess() {
     const arrivalTime = document.getElementById('arrivalTime').value;
@@ -256,6 +164,8 @@
     if (selectedAlgorithm === 'FCFS') {
       let currentTime = 0;
       const sorted = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime);
+      const ganttLog = [];
+
       sorted.forEach(p => {
         const startTime = Math.max(currentTime, p.arrivalTime);
         const completionTime = startTime + p.burstTime;
@@ -271,30 +181,35 @@
           waitingTime
         });
 
+        ganttLog.push({
+          id: p.id,
+          timeSlice: p.burstTime,
+          startTime: startTime,
+          endTime: completionTime
+        });
+
         currentTime = completionTime;
       });
 
+      completedProcesses.sort((a, b) => a.id - b.id);
       renderResultTable(completedProcesses);
+      renderGanttChart(ganttLog);
+    }
 
-        const ganttLog = [];
-        let lastTime = 0;
-        completedProcesses.forEach(p => {
-          const startTime = Math.max(p.arrivalTime, lastTime);
-          ganttLog.push({ id: p.id, timeSlice: p.burstTime, currentTime: startTime + p.burstTime });
-          lastTime = startTime + p.burstTime;
-        });
-        renderGanttChart(ganttLog);
-    } else if (selectedAlgorithm === 'SJF (Non-Preemptive)') {
+    //sjf non preemptive else if
+    else if (selectedAlgorithm === 'SJF (Non-Preemptive)') {
       let currentTime = 0;
       let remaining = [...processes];
+      const ganttLog = [];
+
       while (remaining.length) {
         const ready = remaining.filter(p => p.arrivalTime <= currentTime);
         if (ready.length === 0) {
           currentTime++;
           continue;
         }
-        ready.sort((a, b) => a.burstTime - b.burstTime);
-        const current = ready[0];
+        ready.sort((a, b) => a.burstTime - b.burstTime || a.arrivalTime - b.arrivalTime);
+        const current = remaining.find(p => p.id === ready[0].id);
         const startTime = Math.max(currentTime, current.arrivalTime);
         const completionTime = startTime + current.burstTime;
         const turnaroundTime = completionTime - current.arrivalTime;
@@ -309,82 +224,97 @@
           waitingTime
         });
 
+        ganttLog.push({
+          id: current.id,
+          timeSlice: current.burstTime,
+          startTime: startTime,
+          endTime: completionTime
+        });
+
         currentTime = completionTime;
         remaining = remaining.filter(p => p.id !== current.id);
       }
-
-      renderResultTable(completedProcesses);
-
-        const ganttLog = [];
-        let lastTime = 0;
-        completedProcesses.forEach(p => {
-          const startTime = Math.max(p.arrivalTime, lastTime);
-          ganttLog.push({ id: p.id, timeSlice: p.burstTime, currentTime: startTime + p.burstTime });
-          lastTime = startTime + p.burstTime;
-        });
-        renderGanttChart(ganttLog);
-    } else if (selectedAlgorithm === 'SJF (Preemptive)') {
-      let currentTime = 0;
-      let remaining = [...processes].map(p => ({
-        ...p,
-        remainingBurstTime: p.burstTime,
-        isComplete: false
-      }));
-      let completedCount = 0;
-      let processOrder = [];
-
-      while (completedCount < processes.length) {
-        let available = remaining.filter(p => p.arrivalTime <= currentTime && !p.isComplete);
-        if (available.length === 0) {
-          currentTime++;
-          continue;
-        }
-
-        available.sort((a, b) => a.remainingBurstTime - b.remainingBurstTime);
-        let current = available[0];
-
-        current.remainingBurstTime--;
-        processOrder.push({ id: current.id, time: currentTime });
-
-        if (current.remainingBurstTime === 0) {
-          current.isComplete = true;
-          completedCount++;
-          const completionTime = currentTime + 1;
-          const turnaroundTime = completionTime - current.arrivalTime;
-          const waitingTime = turnaroundTime - current.burstTime;
-          completedProcesses.push({
-            id: current.id,
-            arrivalTime: current.arrivalTime,
-            burstTime: current.burstTime,
-            completionTime,
-            turnaroundTime,
-            waitingTime
-          });
-        }
-
-        currentTime++;
-      }
-
-      // Convert execution log to Gantt chart blocks
-      const ganttLog = [];
-      for (let i = 0; i < processOrder.length;) {
-        const pid = processOrder[i].id;
-        const start = processOrder[i].time;
-        let end = start;
-        while (i < processOrder.length && processOrder[i].id === pid) {
-          end = processOrder[i].time + 1;
-          i++;
-        }
-        ganttLog.push({ id: pid, timeSlice: end - start, currentTime: end });
-      }
-
+      completedProcesses.sort((a, b) => a.id - b.id);
       renderResultTable(completedProcesses);
       renderGanttChart(ganttLog);
-    } else if (selectedAlgorithm === 'Round Robin') {
+    }
+
+    //sjs preemptive for PREEMPTIVE
+    else if (selectedAlgorithm === 'SJF (Preemptive)') {
+  let currentTime = 0;
+  let remaining = [...processes].map(p => ({
+    ...p,
+    remainingBurstTime: p.burstTime,
+    isComplete: false,
+  }));
+  let completedCount = 0;
+  let ganttLog = [];
+
+  let currentProcess = null;
+  let lastProcessId = null;
+  let startTime = 0;
+
+  while (completedCount < processes.length) {
+    let ready = remaining.filter(p => p.arrivalTime <= currentTime && !p.isComplete);
+    if (ready.length === 0) {
+      currentTime++;
+      continue;
+    }
+
+    ready.sort((a, b) => a.remainingBurstTime - b.remainingBurstTime || a.arrivalTime - b.arrivalTime);
+    currentProcess = ready[0];
+
+    if (lastProcessId !== currentProcess.id) {
+      if (lastProcessId !== null) {
+        ganttLog[ganttLog.length - 1].endTime = currentTime;
+        ganttLog[ganttLog.length - 1].timeSlice = ganttLog[ganttLog.length - 1].endTime - ganttLog[ganttLog.length - 1].startTime;
+      }
+      ganttLog.push({
+        id: currentProcess.id,
+        startTime: currentTime,
+        endTime: null,
+        timeSlice: 0
+      });
+      lastProcessId = currentProcess.id;
+    }
+
+    currentProcess.remainingBurstTime--;
+    currentTime++;
+
+    if (currentProcess.remainingBurstTime === 0) {
+      currentProcess.isComplete = true;
+      completedCount++;
+      const completionTime = currentTime;
+      const turnaroundTime = completionTime - currentProcess.arrivalTime;
+      const waitingTime = turnaroundTime - currentProcess.burstTime;
+
+      completedProcesses.push({
+        id: currentProcess.id,
+        arrivalTime: currentProcess.arrivalTime,
+        burstTime: currentProcess.burstTime,
+        completionTime,
+        turnaroundTime,
+        waitingTime
+      });
+    }
+  }
+
+  if (ganttLog.length > 0 && ganttLog[ganttLog.length - 1].endTime === null) {
+    ganttLog[ganttLog.length - 1].endTime = currentTime;
+    ganttLog[ganttLog.length - 1].timeSlice = ganttLog[ganttLog.length - 1].endTime - ganttLog[ganttLog.length - 1].startTime;
+  }
+
+  completedProcesses.sort((a, b) => a.id - b.id);
+  renderResultTable(completedProcesses);
+  renderGanttChart(ganttLog);
+}
+
+
+    //round bin
+    else if (selectedAlgorithm === 'Round Robin') {
       let currentTime = 0;
       let remainingProcesses = [...processes].map(p => ({ ...p, remainingBurstTime: p.burstTime, startTime: null }));
       let processOrder = [];
-
       let readyQueue = [];
       let visited = [];
 
@@ -403,11 +333,10 @@
 
         let process = readyQueue.shift();
         let timeSlice = Math.min(timeQuantum, process.remainingBurstTime);
-        if (process.startTime === null) process.startTime = currentTime;
-
+        let startTime = currentTime;
         process.remainingBurstTime -= timeSlice;
         currentTime += timeSlice;
-        processOrder.push({ ...process, timeSlice, currentTime });
+        processOrder.push({ id: process.id, timeSlice, startTime, endTime: currentTime });
 
         remainingProcesses.forEach(p => {
           if (!visited.includes(p.id) && p.arrivalTime <= currentTime) {
@@ -419,32 +348,28 @@
         if (process.remainingBurstTime > 0) {
           readyQueue.push(process);
         } else {
-          const completionTime = currentTime;
-          const turnaroundTime = completionTime - process.arrivalTime;
+          const turnaroundTime = currentTime - process.arrivalTime;
           const waitingTime = turnaroundTime - process.burstTime;
 
           completedProcesses.push({
             id: process.id,
             arrivalTime: process.arrivalTime,
             burstTime: process.burstTime,
-            completionTime,
+            completionTime: currentTime,
             turnaroundTime,
             waitingTime
           });
         }
       }
-
+      completedProcesses.sort((a, b) => a.id - b.id);
       renderResultTable(completedProcesses);
       renderGanttChart(processOrder);
-    } else {
-      alert('Selected algorithm is not implemented.');
     }
 
-    // Show result table and chart
     document.getElementById('resultHeader').classList.remove('hidden');
     document.getElementById('resultTable').classList.remove('hidden');
     document.getElementById('ganttHeader').classList.remove('hidden');
-    document.getElementById('ganttChart').classList.remove('hidden'); 
+    document.getElementById('ganttChart').classList.remove('hidden');
   }
 
   function renderResultTable(results) {
@@ -468,36 +393,18 @@
       tbody.appendChild(row);
     });
 
-    const avgTurnaroundTime = totalTurnaroundTime / results.length;
-    const avgWaitingTime = totalWaitingTime / results.length;
-
-    const avgRow = document.createElement('tr');
-    avgRow.innerHTML = `
-      <td colspan="4"><strong>Average Turnaround Time:</strong></td>
-      <td colspan="2">${avgTurnaroundTime.toFixed(2)}</td>
+    tbody.innerHTML += `
+      <tr><td colspan="4"><strong>Average Turnaround Time:</strong></td><td colspan="2">${(totalTurnaroundTime / results.length).toFixed(2)}</td></tr>
+      <tr><td colspan="4"><strong>Average Waiting Time:</strong></td><td colspan="2">${(totalWaitingTime / results.length).toFixed(2)}</td></tr>
     `;
-    tbody.appendChild(avgRow);
-
-    const avgWaitingRow = document.createElement('tr');
-    avgWaitingRow.innerHTML = `
-      <td colspan="4"><strong>Average Waiting Time:</strong></td>
-      <td colspan="2">${avgWaitingTime.toFixed(2)}</td>
-    `;
-    tbody.appendChild(avgWaitingRow);
   }
 
-  function renderGanttChart(processOrder) {
+  function renderGanttChart(entries) {
     const ganttChart = document.getElementById('ganttChart');
     ganttChart.innerHTML = '';
-
-    ganttChart.classList.remove('hidden');
-
-    let startTime = 0;
-
-    processOrder.forEach(entry => {
+    entries.forEach(entry => {
       const bar = document.createElement('div');
       const width = entry.timeSlice * 20;
-
       bar.style.width = `${width}px`;
       bar.style.background = '#4CAF50';
       bar.style.border = '1px solid #333';
@@ -505,14 +412,10 @@
       bar.style.padding = '4px';
       bar.style.textAlign = 'center';
       bar.style.fontSize = '12px';
-      bar.textContent = `P${entry.id} (${startTime}-${entry.currentTime})`;
-
+      bar.style.display = 'inline-block';
+      bar.textContent = `P${entry.id} (${entry.startTime}-${entry.endTime})`;
       ganttChart.appendChild(bar);
-      startTime = entry.currentTime;
     });
-
-    document.getElementById('ganttHeader').classList.remove('hidden');
-    ganttChart.classList.remove('hidden');
   }
 </script>
 
