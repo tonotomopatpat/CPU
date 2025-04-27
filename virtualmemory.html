@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Virtual Memory Visualizer - Vertical View</title>
+  <title>Virtual Memory Visualizer</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #fffdd0;;
+      background: #fffdd0;
       margin: 0;
       padding: 20px;
     }
@@ -23,16 +23,15 @@
     }
 
     #memory-wrapper {
-  width: 120px; /* Start narrow */
-  transition: width 0.5s ease; /* Enables smooth width change */
-  height: auto;
-  overflow-y: auto;
-  border: 2px solid #888;
-  padding: 10px;
-  background: #fff;
-  position: relative;
-  transition: width 0.5s ease; /* Smooth expand effect */
-}
+      width: 120px; 
+      transition: width 0.5s ease; 
+      height: auto;
+      overflow-y: auto;
+      border: 2px solid #888;
+      padding: 10px;
+      background: #fff;
+      position: relative;
+    }
 
     #memory {
       display: flex;
@@ -133,6 +132,48 @@
       background-color: #d0f0c0;
       border-radius: 4px;
     }
+
+    #processes {
+      margin-top: 20px;
+      width: 350px;
+      min-height: 200px;
+      border: 2px solid #888;
+      padding: 10px;
+      background: #fff;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #process-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 10px;
+      flex-grow: 1;
+      justify-content: flex-start;
+      align-items: center;
+    }
+
+    .process-item {
+      width: 90%;
+      height: 40px;
+      background-color: #ffe0b2;
+      border: 1px solid #555;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      border-radius: 6px;
+    }
+
+    .no-process {
+      color: #888;
+      font-style: italic;
+      margin-top: 40px;
+    }
+    
   </style>
 </head>
 <body>
@@ -141,8 +182,10 @@
 <div style="text-align: center; margin-bottom: 20px;">
   <a href="index.html" style="font-size: 16px; color: #333; text-decoration: underline;">← Back to Main Menu</a>
 </div>
+
 <div id="container">
   <div id="VMM"><h1>Virtual Memory</h1></div>
+
   <div id="memory-wrapper">
     <div id="memory"></div>
     <div id="floating"></div>
@@ -153,17 +196,27 @@
     <input type="number" id="size" min="1">
     <button onclick="allocate()">Allocate</button>
     <button onclick="resetMemory()">Reset</button>
+
+    <div id="processes">
+      <h3>Processes</h3>
+      <div id="process-list">
+        <div class="no-process">No file placed.</div>
+      </div>
+    </div>
+
     <div id="status"></div> 
   </div>
 </div>
+
 
 <script>
   const memoryBlocks = [];
   const totalBlocks = 10;
 
+  //computation for random numbers from up to 200
   for (let i = 0; i < totalBlocks; i++) {
     memoryBlocks.push({
-      size: Math.floor(Math.random() * 50 + 20),
+      size: Math.floor(Math.random() * 180 + 20),
       used: false
     });
   }
@@ -171,6 +224,7 @@
   const memoryContainer = document.getElementById("memory");
   const floating = document.getElementById("floating");
   const status = document.getElementById("status");
+  const processList = document.getElementById("process-list");
 
   function renderMemory() {
     memoryContainer.innerHTML = "";
@@ -201,18 +255,28 @@
     blockDiv.style.boxShadow = "none";
   }
 
-function addLogEntry(message, isError = false) {
-  const logEntry = document.createElement("div");
-  logEntry.className = "log-entry";
-  logEntry.textContent = message;
+  //logs
+  function addLogEntry(message, isError = false) {
+    const logEntry = document.createElement("div");
+    logEntry.className = "log-entry";
+    logEntry.textContent = message;
 
-  if (isError) {
-    logEntry.style.backgroundColor = "red";  
-    logEntry.style.color = "white";  
+    if (isError) {
+      logEntry.style.backgroundColor = "red";  
+      logEntry.style.color = "white";  
+    }
+    status.appendChild(logEntry);
+    status.scrollTop = status.scrollHeight; 
   }
-  status.appendChild(logEntry);
-  status.scrollTop = status.scrollHeight; 
-}
+
+  function updateProcessListEmptyState() {
+    if (processList.children.length === 0) {
+      const emptyMessage = document.createElement("div");
+      emptyMessage.className = "no-process";
+      emptyMessage.textContent = "No file placed.";
+      processList.appendChild(emptyMessage);
+    }
+  }
 
   async function allocate() {
     document.getElementById("memory-wrapper").style.width = "315px";
@@ -220,6 +284,16 @@ function addLogEntry(message, isError = false) {
     const input = document.getElementById("size");
     const size = parseInt(input.value);
     if (isNaN(size) || size <= 0) return alert("Enter a valid size.");
+
+    //notif if no file
+    const existingPlaceholder = document.querySelector(".no-process");
+    if (existingPlaceholder) existingPlaceholder.remove();
+
+    //add to process
+    const processItem = document.createElement("div");
+    processItem.className = "process-item";
+    processItem.textContent = `${size} KB`;
+    processList.appendChild(processItem);
 
     floating.style.display = "flex";
     floating.textContent = `${size}`;
@@ -240,7 +314,6 @@ function addLogEntry(message, isError = false) {
       memoryContainer.scrollTo({ top: topPos - 60, behavior: "smooth" });
       await highlightBlock(blockDiv);
 
-      //for stopping na kapag equal na sa size
       if (block.size === size) {
         bestFitIndex = i;
         bestFitSize = block.size;
@@ -259,11 +332,15 @@ function addLogEntry(message, isError = false) {
       floating.style.top = `${targetBlock.offsetTop}px`;
       floating.style.backgroundColor = "limegreen";
       targetBlock.style.backgroundColor = "limegreen";
-      targetBlock.innerHTML = `Used<br>${size}`;
-      addLogEntry(`Allocated ${size} KB to block ${bestFitIndex + 1} with partition of ${memoryBlocks[bestFitIndex].size} KB.`);
+      
+      const originalSize = memoryBlocks[bestFitIndex].size;
+
+      targetBlock.innerHTML = `Used<br>${size} KB / ${originalSize} KB`;
+
+      addLogEntry(`Allocated ${size} KB to block ${bestFitIndex + 1} with partition of ${originalSize} KB.`);
     } else {
       floating.style.backgroundColor="red";
-      addLogEntry(`No suitable block found for ${size} KB.`,true);
+      addLogEntry(`No suitable block found for ${size} KB.`, true);
     }
 
     setTimeout(() => {
@@ -275,14 +352,20 @@ function addLogEntry(message, isError = false) {
   function resetMemory() {
     for (let i = 0; i < memoryBlocks.length; i++) {
       memoryBlocks[i].used = false;
-      memoryBlocks[i].size = Math.floor(Math.random() * 50 + 20);
+      memoryBlocks[i].size = Math.floor(Math.random() * 180 + 20);
     }
     renderMemory();
     floating.style.display = "none";
     floating.style.backgroundColor = "dodgerblue";
     status.innerHTML = "";
+    processList.innerHTML = "";
+    updateProcessListEmptyState();
   }
-</script>
 
+  updateProcessListEmptyState(); 
+</script>
+<footer style="text-align: center; margin-top: 40px; padding: 20px; font-size: 14px; color: #555;">
+  Created by Justine Klert S. Manzano — Virtual Memory Visualizer Project
+</footer>
 </body>
 </html>
