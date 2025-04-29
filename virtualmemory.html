@@ -107,7 +107,7 @@
     }
 
     input {
-      width: 100px;
+      width: 150px;
       padding: 6px;
     }
 
@@ -116,7 +116,7 @@
     }
 
     #status {
-      margin-top: 20px;
+      margin-top: 5px;
       font-weight: bold;
       max-height: 200px;
       overflow-y: auto;
@@ -134,9 +134,9 @@
     }
 
     #processes {
-      margin-top: 20px;
+      margin-top: 5px;
       width: 350px;
-      min-height: 200px;
+      min-height: 250px;
       border: 2px solid #888;
       padding: 10px;
       background: #fff;
@@ -149,13 +149,16 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-top: 10px;
-      flex-grow: 1;
+      margin-top: 5px;
       justify-content: flex-start;
+      /*flex-grow: 1;*/
       align-items: center;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
     .process-item {
+      flex-shrink: 0;
       width: 90%;
       height: 40px;
       background-color: #ffe0b2;
@@ -294,6 +297,7 @@
     processItem.className = "process-item";
     processItem.textContent = `${size} KB`;
     processList.appendChild(processItem);
+    processList.scrollTop=processList.scrollHeight;
 
     floating.style.display = "flex";
     floating.textContent = `${size}`;
